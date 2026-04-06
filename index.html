@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal - Reel Fortune</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script type="text/javascript" src="https://download.playfab.com/PlayFabClientApi.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: { 
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { 
+                        gaming: { 950: '#020617', 900: '#0f172a', 800: '#1e293b', 700: '#334155', accent: '#06b6d4', diamond: '#a855f7' } 
+                    } 
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            background-color: #020617; 
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #020617 70%);
+            background-attachment: fixed;
+            color: #cbd5e1; 
+        }
+        .glass-card { 
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        .input-custom {
+            background: rgba(2, 6, 23, 0.6);
+            border: 1px solid #334155;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .input-custom:focus { border-color: #06b6d4; box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2); outline: none; }
+        .nav-active { background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, transparent 100%); border-left: 4px solid #06b6d4; color: #22d3ee; }
+        .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-8">
+
+    <div id="authScreen" class="w-full max-w-[380px] p-8 md:p-10 glass-card rounded-3xl animate-fade z-10">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-gaming-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-gaming-accent/20 text-gaming-accent shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                <i class="fa-solid fa-gamepad text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-black text-white tracking-wide uppercase">Reel Fortune</h2>
+            <p id="formSubtitle" class="text-xs text-slate-400 font-medium uppercase tracking-widest mt-2">Security Portal</p>
+        </div>
+
+        <div id="loginForm" class="space-y-4">
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center ml-1 pr-1">
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tài khoản</label>
+                    <span id="loginUserCount" class="text-[10px] text-slate-500 font-mono">0/20</span>
+                </div>
+                <input type="text" id="loginUser" maxlength="20" oninput="AppUI.UpdateCounter(this, 'loginUserCount', 20)" class="input-custom w-full rounded-xl px-4 py-3.5 text-sm" placeholder="Nhập tên đăng nhập">
+            </div>
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center ml-1 pr-1">
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mật khẩu</label>
+                    <span id="loginPassCount" class="text-[10px] text-slate-500 font-mono">0/30</span>
+                </div>
+                <input type="password" id="loginPass" maxlength="30" oninput="AppUI.UpdateCounter(this, 'loginPassCount', 30)" class="input-custom w-full rounded-xl px-4 py-3.5 text-sm" placeholder="Nhập mật khẩu">
+            </div>
+            <button onclick="AuthManager.Login()" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold py-3.5 rounded-xl transition-all shadow-lg active:scale-95 uppercase text-xs tracking-widest mt-2">Đăng Nhập</button>
+            <div class="flex justify-between items-center px-1 pt-2">
+                <a href="#" onclick="ToggleAuthMode('register')" class="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold transition">Tạo tài khoản mới</a>
+                <a href="#" onclick="ToggleAuthMode('forgot')" class="text-[11px] text-slate-400 hover:text-white font-semibold transition">Quên mật khẩu?</a>
+            </div>
+        </div>
+
+        <div id="registerForm" class="hidden space-y-4">
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center ml-1 pr-1">
+                    <label class="text-[11px] text-cyan-400 font-bold uppercase tracking-wider">Tài khoản (Chữ & số)</label>
+                    <span id="regUserCount" class="text-[10px] text-slate-500 font-mono">0/20</span>
+                </div>
+                <input type="text" id="regUser" maxlength="20" oninput="AppUI.UpdateCounter(this, 'regUserCount', 20)" class="input-custom w-full rounded-xl px-4 py-3 text-sm" placeholder="VD: player123">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[11px] text-slate-400 font-bold uppercase tracking-wider ml-1">Email khôi phục</label>
+                <input type="email" id="regEmail" class="input-custom w-full rounded-xl px-4 py-3 text-sm" placeholder="email@domain.com">
+            </div>
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center ml-1 pr-1">
+                    <label class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Mật khẩu (>= 6 ký tự)</label>
+                    <span id="regPassCount" class="text-[10px] text-slate-500 font-mono">0/30</span>
+                </div>
+                <input type="password" id="regPass" maxlength="30" oninput="AppUI.UpdateCounter(this, 'regPassCount', 30)" class="input-custom w-full rounded-xl px-4 py-3 text-sm" placeholder="••••••••">
+            </div>
+            <button onclick="AuthManager.Register()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg active:scale-95 uppercase text-xs tracking-widest mt-2">Đăng Ký</button>
+            <p class="text-center pt-2"><a href="#" onclick="ToggleAuthMode('login')" class="text-[11px] text-slate-400 hover:text-white font-semibold transition">Quay lại đăng nhập</a></p>
+        </div>
+
+        <div id="forgotForm" class="hidden space-y-4">
+            <div class="space-y-1.5">
+                <label class="text-[11px] text-slate-400 font-bold uppercase tracking-wider ml-1">Email đã đăng ký</label>
+                <input type="email" id="forgotEmail" class="input-custom w-full rounded-xl px-4 py-3.5 text-sm" placeholder="Nhập Email của bạn">
+            </div>
+            <button onclick="AuthManager.ForgotPassword()" class="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold py-3.5 rounded-xl transition-all shadow-lg active:scale-95 uppercase text-xs tracking-widest mt-2">Nhận link khôi phục</button>
+            <p class="text-center pt-2"><a href="#" onclick="ToggleAuthMode('login')" class="text-[11px] text-slate-400 hover:text-white font-semibold transition">Hủy bỏ</a></p>
+        </div>
+    </div>
+
+    <div id="dashboardScreen" class="hidden w-full max-w-5xl h-[85vh] min-h-[600px] glass-card rounded-3xl flex-col md:flex-row overflow-hidden z-10 shadow-2xl">
+        
+        <div class="w-full md:w-64 bg-gaming-900/80 p-6 flex flex-col border-b md:border-b-0 md:border-r border-slate-700/50 flex-shrink-0">
+            <div class="flex items-center gap-3 mb-6 md:mb-10 px-2">
+                <div class="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 border border-cyan-500/20">
+                    <i class="fa-solid fa-gamepad text-xl"></i>
+                </div>
+                <h1 class="text-lg font-black text-white tracking-wide uppercase">Portal</h1>
+            </div>
+            <nav class="flex flex-row md:flex-col gap-2 flex-1 overflow-x-auto md:overflow-hidden pb-2 md:pb-0 custom-scrollbar">
+                <button onclick="DashboardManager.SwitchTab('profile')" id="nav-profile" class="nav-item nav-active flex-shrink-0 md:w-full text-left px-4 py-3.5 rounded-xl font-bold text-sm flex items-center transition-all">
+                    <i class="fa-solid fa-user-shield mr-3 w-5 text-center"></i> <span>Hồ Sơ Của Tôi</span>
+                </button>
+                <button onclick="DashboardManager.SwitchTab('history')" id="nav-history" class="nav-item flex-shrink-0 md:w-full text-left px-4 py-3.5 rounded-xl font-bold text-sm text-slate-400 hover:text-white hover:bg-slate-800/50 flex items-center transition-all">
+                    <i class="fa-solid fa-file-invoice-dollar mr-3 w-5 text-center"></i> <span>Sổ Sao Kê VIP</span>
+                </button>
+            </nav>
+            <button onclick="AuthManager.Logout()" class="hidden md:flex mt-auto px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all font-bold text-xs uppercase border border-rose-500/20 items-center justify-center">
+                <i class="fa-solid fa-right-from-bracket mr-2"></i> Đăng xuất
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 md:p-10 flex flex-col relative custom-scrollbar">
+            <button onclick="AuthManager.Logout()" class="md:hidden absolute top-6 right-6 text-rose-400 p-2 rounded-lg bg-rose-500/10">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+
+            <div id="tab-profile" class="tab-content block animate-fade space-y-8 pb-10">
+                <div class="pr-12 md:pr-0">
+                    <h2 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tight">Quản Lý Tài Khoản</h2>
+                    <p class="text-sm text-slate-400 mt-1">Xin chào, <span id="ui-username" class="text-cyan-400 font-bold">...</span></p>
+                </div>
+
+                <div class="bg-gaming-800/50 border border-slate-700/50 p-6 md:p-8 rounded-2xl relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">Tên hiển thị hiện tại</p>
+                            <h3 id="ui-displayName" class="text-2xl md:text-3xl font-bold text-white truncate" title="...">...</h3>
+                            <p class="text-xs text-slate-500 mt-2 font-mono">ID: <span id="ui-playfabId" class="text-cyan-400">...</span></p>
+                        </div>
+                        <div class="w-full md:w-[350px] bg-gaming-900 p-4 rounded-xl border border-slate-700 space-y-3 shrink-0">
+                            <p class="text-[10px] text-slate-400 font-bold uppercase"><i class="fa-solid fa-pen mr-1.5"></i>Đổi Tên Nhân Vật</p>
+                            <div class="flex gap-2 items-center">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="newDisplayName" maxlength="25" oninput="AppUI.UpdateCounter(this, 'newNameCount', 25)" class="input-custom w-full rounded-lg px-3 py-2 pr-12 text-sm" placeholder="Nhập tên mới...">
+                                    <span id="newNameCount" class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-500 font-mono">0/25</span>
+                                </div>
+                                <button onclick="DashboardManager.UpdateDisplayName()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold px-4 py-2 rounded-lg text-xs uppercase transition-all">Lưu</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-gaming-800/50 border border-slate-700/50 p-6 md:p-8 rounded-2xl relative overflow-hidden flex flex-col justify-center gap-4">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-yellow-400 to-purple-500"></div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest"><i class="fa-solid fa-wallet mr-2"></i>Ví Tài Sản</p>
+                        
+                        <div class="flex items-center justify-between bg-gaming-900/50 p-4 rounded-xl border border-yellow-500/20">
+                            <div class="flex items-center gap-3 shrink-0">
+                                <div class="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
+                                    <i class="fa-solid fa-coins text-yellow-400 text-lg drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-300 uppercase">Vàng</span>
+                            </div>
+                            <h3 id="ui-gd" class="text-xl md:text-2xl font-black text-white tracking-tight truncate ml-4 text-right">0</h3>
+                        </div>
+
+                        <div class="flex items-center justify-between bg-gaming-900/50 p-4 rounded-xl border border-purple-500/20">
+                            <div class="flex items-center gap-3 shrink-0">
+                                <div class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+                                    <i class="fa-solid fa-gem text-purple-400 text-lg drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-300 uppercase">Kim Cương</span>
+                            </div>
+                            <h3 id="ui-dm" class="text-xl md:text-2xl font-black text-white tracking-tight truncate ml-4 text-right">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="bg-gaming-800/50 border border-rose-500/20 p-6 md:p-8 rounded-2xl relative overflow-hidden flex flex-col justify-center">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-shield-halved text-rose-500 text-xl"></i>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Bảo mật tài khoản</h3>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed mb-5">Hệ thống sẽ gửi đường dẫn bảo mật vào Email khôi phục của bạn để tiến hành đặt lại mật khẩu.</p>
+                        <button onclick="DashboardManager.ResetPasswordByEmail()" class="w-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold py-3 rounded-xl text-xs uppercase transition-all">Gửi thư khôi phục</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-history" class="tab-content hidden animate-fade h-full flex flex-col">
+                <div class="pr-12 md:pr-0 mb-6 md:mb-8">
+                    <h2 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tight">Sổ Sao Kê VIP</h2>
+                </div>
+                
+                <div class="flex gap-2 mb-6 border-b border-slate-700/50 pb-4 overflow-x-auto custom-scrollbar">
+                    <button id="subtab-nap" onclick="DashboardManager.ShowLogTab('nap')" class="flex-shrink-0 px-5 py-2.5 font-bold text-emerald-400 bg-emerald-500/10 rounded-lg transition-all uppercase text-xs tracking-wider">Nạp Tiền</button>
+                    <button id="subtab-biendong" onclick="DashboardManager.ShowLogTab('biendong')" class="flex-shrink-0 px-5 py-2.5 font-bold text-slate-400 hover:text-white rounded-lg transition-all uppercase text-xs tracking-wider">Biến Động Vật Phẩm</button>
+                    <button id="subtab-gacha" onclick="DashboardManager.ShowLogTab('gacha')" class="flex-shrink-0 px-5 py-2.5 font-bold text-slate-400 hover:text-white rounded-lg transition-all uppercase text-xs tracking-wider">Lịch Sử Gacha</button>
+                </div>
+
+                <div id="log-container" class="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar pb-10">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var CONFIG = { TitleId: "1B5A96" };
+        PlayFab.settings.titleId = CONFIG.TitleId;
+        window.ItemDict = {}; 
+        var currentUserEmail = "";
+
+        var AppUI = {
+            UpdateCounter: (inputEl, counterId, max) => {
+                let len = inputEl.value.length;
+                let counterSpan = document.getElementById(counterId);
+                if (counterSpan) {
+                    counterSpan.innerText = `${len}/${max}`;
+                    counterSpan.style.color = len >= max ? '#f43f5e' : '#64748b'; 
+                }
+            },
+            Loading: (m) => Swal.fire({ title: m, allowOutsideClick: false, background: '#0f172a', color: '#f8fafc', didOpen: () => Swal.showLoading() }),
+            Success: (t, txt) => Swal.fire({ icon: 'success', title: t, text: txt, background: '#0f172a', color: '#f8fafc', confirmButtonColor: '#06b6d4' }),
+            Error: (t, err) => { let msg = (typeof err === 'string') ? err : (err.errorMessage || "Lỗi máy chủ."); Swal.fire({ icon: 'error', title: t, text: msg, background: '#0f172a', color: '#f8fafc' }); },
+            Warn: (t, txt) => Swal.fire({ icon: 'warning', title: t, text: txt, background: '#0f172a', color: '#f8fafc' })
+        };
+
+        var AuthManager = {
+            // 🌟 ĐÃ THÊM: HÀM KIỂM TRA PHIÊN ĐĂNG NHẬP
+            CheckSession: () => {
+                let session = localStorage.getItem("rf_sessionTicket");
+                let pId = localStorage.getItem("rf_playfabId");
+                let usr = localStorage.getItem("rf_username");
+
+                if (session && pId && usr) {
+                    // Nhồi lại thẻ thông hành vào SDK
+                    PlayFab._internalSettings.sessionTicket = session;
+                    
+                    // Gọi API lấy hồ sơ để test xem thẻ thông hành còn hạn không
+                    PlayFabClientSDK.GetPlayerProfile({ ProfileConstraints: { ShowDisplayName: true } }, (res, err) => {
+                        if (err) {
+                            // Hết hạn -> Xóa dữ liệu cũ, hiện lại màn đăng nhập
+                            AuthManager.Logout(false);
+                        } else {
+                            // Còn hạn -> Đi thẳng vào Dashboard
+                            document.getElementById('authScreen').classList.add('hidden');
+                            document.getElementById('dashboardScreen').classList.remove('hidden');
+                            document.getElementById('dashboardScreen').classList.add('flex');
+                            DashboardManager.Init(pId, usr);
+                        }
+                    });
+                }
+            },
+            Login: () => {
+                var u = document.getElementById("loginUser").value.trim(), p = document.getElementById("loginPass").value;
+                if(!u || p.length < 6) return AppUI.Warn('Lưu ý', 'Vui lòng nhập đủ tài khoản và mật khẩu!');
+                AppUI.Loading('Đang kết nối...');
+                PlayFabClientSDK.LoginWithPlayFab({ TitleId: CONFIG.TitleId, Username: u, Password: p }, (res, err) => {
+                    if(err) return AppUI.Error('Lỗi', 'Sai tên tài khoản hoặc mật khẩu!');
+                    Swal.close();
+
+                    // 🌟 ĐÃ THÊM: LƯU TRỮ VÉ THÔNG HÀNH
+                    localStorage.setItem("rf_sessionTicket", res.data.SessionTicket);
+                    localStorage.setItem("rf_playfabId", res.data.PlayFabId);
+                    localStorage.setItem("rf_username", u);
+
+                    document.getElementById('authScreen').classList.add('hidden');
+                    document.getElementById('dashboardScreen').classList.replace('hidden', 'flex');
+                    DashboardManager.Init(res.data.PlayFabId, u);
+                });
+            },
+            Register: () => {
+                var u = document.getElementById("regUser").value.trim(), e = document.getElementById("regEmail").value.trim(), p = document.getElementById("regPass").value;
+                if(!/^[a-zA-Z0-9]+$/.test(u)) return AppUI.Warn('Lỗi', 'Tên chỉ chứa chữ và số!');
+                if(u.length < 3 || p.length < 6) return AppUI.Warn('Lỗi', 'Thông tin quá ngắn!');
+                AppUI.Loading('Đang tạo...');
+                PlayFabClientSDK.RegisterPlayFabUser({ TitleId: CONFIG.TitleId, Username: u, Email: e, Password: p, RequireBothUsernameAndEmail: true }, (res, err) => {
+                    if(err) return AppUI.Error('Lỗi', err);
+                    AppUI.Success('Xong!', 'Đăng ký thành công!');
+                    ToggleAuthMode('login');
+                });
+            },
+            ForgotPassword: () => {
+                var e = document.getElementById("forgotEmail").value.trim();
+                AppUI.Loading('Đang gửi...');
+                PlayFabClientSDK.SendAccountRecoveryEmail({ TitleId: CONFIG.TitleId, Email: e }, (res, err) => {
+                    if(err) return AppUI.Error('Lỗi', err);
+                    AppUI.Success('Đã gửi', 'Vui lòng check hộp thư Email.');
+                    ToggleAuthMode('login');
+                });
+            },
+            // 🌟 ĐÃ THÊM: HÀM ĐĂNG XUẤT XÓA BỘ NHỚ
+            Logout: (reload = true) => {
+                localStorage.removeItem("rf_sessionTicket");
+                localStorage.removeItem("rf_playfabId");
+                localStorage.removeItem("rf_username");
+                if (reload) location.reload();
+            }
+        };
+
+        var DashboardManager = {
+            LogData: { nap: [], biendong: [], gacha: [] },
+            Init: (id, username) => {
+                document.getElementById('ui-playfabId').innerText = id;
+                document.getElementById('ui-username').innerText = username;
+                PlayFabClientSDK.GetPlayerProfile({ ProfileConstraints: { ShowDisplayName: true, ShowContactEmailAddresses: true } }, (res) => {
+                    if(res && res.data.PlayerProfile) {
+                        document.getElementById('ui-displayName').innerText = res.data.PlayerProfile.DisplayName || "Tân Thủ";
+                        if(res.data.PlayerProfile.ContactEmailAddresses && res.data.PlayerProfile.ContactEmailAddresses.length > 0)
+                            currentUserEmail = res.data.PlayerProfile.ContactEmailAddresses[0].EmailAddress;
+                    }
+                });
+                PlayFabClientSDK.GetUserInventory({}, (res) => {
+                    if(res && res.data.VirtualCurrency) {
+                        document.getElementById('ui-dm').innerText = (res.data.VirtualCurrency["DM"] || 0).toLocaleString();
+                        document.getElementById('ui-gd').innerText = (res.data.VirtualCurrency["GD"] || 0).toLocaleString();
+                    }
+                });
+                PlayFabClientSDK.GetCatalogItems({ CatalogVersion: "Main" }, (catRes) => {
+                    if(catRes && catRes.data.Catalog) catRes.data.Catalog.forEach(i => window.ItemDict[i.ItemId] = i.DisplayName || i.ItemId);
+                    DashboardManager.TaiSaoKeTuPlayFab();
+                });
+            },
+            SwitchTab: (t) => {
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+                document.getElementById('tab-'+t).classList.remove('hidden');
+                document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('nav-active', 'text-cyan-400'); el.classList.add('text-slate-400'); });
+                document.getElementById('nav-'+t).classList.add('nav-active', 'text-cyan-400');
+            },
+            UpdateDisplayName: () => {
+                var newName = document.getElementById("newDisplayName").value.trim();
+                if(newName.length < 3) return AppUI.Warn('Lỗi', 'Tên quá ngắn!');
+                AppUI.Loading('Đang đổi tên...');
+                PlayFabClientSDK.UpdateUserTitleDisplayName({ DisplayName: newName }, (res, err) => {
+                    if(err) return AppUI.Error('Lỗi', err);
+                    AppUI.Success('Thành công', 'Đã thay đổi tên nhân vật!');
+                    document.getElementById('ui-displayName').innerText = newName;
+                    document.getElementById("newDisplayName").value = "";
+                    document.getElementById("newNameCount").innerText = "0/25";
+                });
+            },
+            ResetPasswordByEmail: () => {
+                if(!currentUserEmail) return AppUI.Error('Lỗi', 'Chưa có Email liên kết.');
+                AppUI.Loading('Đang gửi...');
+                PlayFabClientSDK.SendAccountRecoveryEmail({ TitleId: CONFIG.TitleId, Email: currentUserEmail }, (res, err) => {
+                    if(err) return AppUI.Error('Lỗi', err);
+                    AppUI.Success('Thành công', 'Check Email: ' + currentUserEmail);
+                });
+            },
+            TaiSaoKeTuPlayFab: () => {
+                PlayFabClientSDK.GetUserReadOnlyData({ Keys: ["Log_NapTien", "Log_BienDong", "Log_Gacha"] }, (res) => {
+                    if(res.data.Data) {
+                        if(res.data.Data["Log_NapTien"]) DashboardManager.LogData.nap = JSON.parse(res.data.Data["Log_NapTien"].Value);
+                        if(res.data.Data["Log_BienDong"]) DashboardManager.LogData.biendong = JSON.parse(res.data.Data["Log_BienDong"].Value);
+                        if(res.data.Data["Log_Gacha"]) DashboardManager.LogData.gacha = JSON.parse(res.data.Data["Log_Gacha"].Value);
+                    }
+                    DashboardManager.ShowLogTab('nap'); 
+                });
+            },
+            ShowLogTab: (tabName) => {
+                let tabs = ['nap', 'biendong', 'gacha'];
+                let activeClasses = { 'nap': 'text-emerald-400 bg-emerald-500/10', 'biendong': 'text-yellow-400 bg-yellow-500/10', 'gacha': 'text-purple-400 bg-purple-500/10' };
+                tabs.forEach(t => { document.getElementById('subtab-'+t).className = `flex-shrink-0 px-5 py-2.5 font-bold rounded-lg transition-all uppercase text-xs tracking-wider ${t === tabName ? activeClasses[t] : 'text-slate-400 hover:text-white hover:bg-slate-800'}`; });
+
+                let container = document.getElementById('log-container');
+                container.innerHTML = '';
+                let data = DashboardManager.LogData[tabName];
+                if(!data || data.length === 0) {
+                    container.innerHTML = `<div class="text-center py-24 text-slate-500 text-xs font-bold uppercase tracking-widest"><i class="fa-solid fa-folder-open text-2xl block mb-3 opacity-50"></i>Chưa có bản ghi nào.</div>`;
+                    return;
+                }
+
+                data.forEach(log => {
+                    let time = new Date(log.timestamp).toLocaleString('vi-VN');
+                    let html = '';
+                    if(tabName === 'nap') {
+                        let balStr = log.balance_after && log.balance_after.DM !== undefined ? `Số dư: ${log.balance_after.DM.toLocaleString()}` : '';
+                        html = `
+                            <div class="bg-gaming-800/80 border border-emerald-500/20 p-5 rounded-2xl flex justify-between items-center animate-fade hover:bg-gaming-800 transition-colors">
+                                <div class="flex items-center gap-4">
+                                    <div class="hidden sm:flex w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 items-center justify-center"><i class="fa-solid fa-money-bill-transfer"></i></div>
+                                    <div><h4 class="font-bold text-white uppercase text-xs tracking-wider mb-1">${log.action || 'Giao Dịch Nạp'}</h4><p class="text-[10px] text-slate-500 font-mono">${time}</p></div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="block text-[10px] text-slate-500 line-through mb-0.5">${log.amount_vnd ? log.amount_vnd.toLocaleString() + ' VND' : ''}</span>
+                                    <span class="text-xl font-black text-emerald-400 block">+${log.amount_dm ? log.amount_dm.toLocaleString() : 0} Kim Cương</span>
+                                    <span class="text-[10px] text-slate-400 font-mono">${balStr}</span>
+                                </div>
+                            </div>`;
+                    } else if(tabName === 'biendong') {
+                        html = `
+                            <div class="bg-gaming-800/80 border border-slate-700 p-5 rounded-2xl animate-fade hover:bg-gaming-800 transition-colors">
+                                <div class="flex justify-between items-center mb-3 pb-3 border-b border-slate-700/50">
+                                    <span class="font-bold text-white uppercase text-xs tracking-wider"><i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>${log.action}</span>
+                                    <span class="text-[10px] text-slate-500 font-mono">${time}</span>
+                                </div>
+                                <p class="text-[11px] text-slate-400 italic mb-3 opacity-80">${Dich(log.reason)}</p>
+                                <div class="text-xs space-y-1.5 bg-gaming-950/50 p-3 rounded-lg border border-slate-800/50">
+                                    ${RenderCur(log.currency_change, log.balance_after)}
+                                    ${RenderItm(log.item_changes)}
+                                </div>
+                            </div>`;
+                    } else if(tabName === 'gacha') {
+                        let balInfo = log.balance_after ? `<div class="mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center text-[10px] text-slate-400 font-mono"><span>SỐ DƯ VÉ: <span class="text-white">${Object.values(log.balance_after)[0]}</span></span><span>PITY 4⭐: ${log.newPity4}/10 &nbsp;|&nbsp; PITY 5⭐: ${log.newPity5}/80</span></div>` : '';
+                        html = `
+                            <div class="bg-gaming-800/80 border border-purple-500/20 p-5 rounded-2xl animate-fade hover:bg-gaming-800 transition-colors">
+                                <div class="flex justify-between items-center mb-4">
+                                    <span class="font-bold text-white uppercase text-xs tracking-wider"><i class="fa-solid fa-star text-purple-400 mr-2"></i>Quay Gacha x${log.rolls}</span>
+                                    <span class="text-[10px] text-slate-500 font-mono">${time}</span>
+                                </div>
+                                <ul class="text-xs space-y-2 pl-2 border-l-2 border-slate-700">
+                                    ${log.details.map(d => {
+                                        let clr = d.rarity >= 5 ? 'text-yellow-400 font-bold drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]' : (d.rarity == 4 ? 'text-purple-400 font-semibold' : 'text-slate-400');
+                                        let ico = d.rarity >= 5 ? '🌟' : '🔹';
+                                        let pityInfo = d.pityTriggered !== "Không" ? `<span class="text-[10px] text-yellow-600/80 italic ml-2">(${d.pityTriggered})</span>` : '';
+                                        return `<li class="${clr} flex items-center"><span class="w-5 text-center mr-2">${ico}</span> <span>Lượt ${d.rollIndex}: ${Dich(d.itemId)} ${pityInfo}</span></li>`;
+                                    }).join('')}
+                                </ul>
+                                ${balInfo}
+                            </div>`;
+                    }
+                    container.innerHTML += html;
+                });
+            }
+        };
+
+        function Dich(chuoiGoc) {
+            if (!chuoiGoc) return '';
+            let ketQua = chuoiGoc;
+            if(!window.ItemDict) return ketQua;
+            
+            for(let id in window.ItemDict) { 
+                let re = new RegExp("\\b" + id + "\\b", "g"); 
+                ketQua = ketQua.replace(re, window.ItemDict[id]); 
+            }
+            return ketQua;
+        }
+
+        function RenderCur(c, balAfter) { 
+            let h = ''; 
+            for(let k in c) {
+                let tenTien = k === 'DM' ? 'Kim Cương' : (k === 'GD' ? 'Vàng' : k);
+                let clr = c[k] > 0 ? 'text-emerald-400' : 'text-rose-400';
+                let icon = k === 'DM' ? '<i class="fa-solid fa-gem text-purple-400"></i>' : '<i class="fa-solid fa-coins text-yellow-500"></i>';
+                let sign = c[k] > 0 ? '+' : '';
+                let bStr = (balAfter && balAfter[k] !== undefined) ? `<span class="text-[10px] text-slate-500 font-normal ml-3 font-mono">(Dư: ${balAfter[k].toLocaleString()})</span>` : '';
+                h += `<p class="flex items-center"><span class="w-5 text-center mr-2">${icon}</span> <span class="text-slate-300 mr-1">${tenTien}:</span> <span class="${clr} font-bold tracking-wide">${sign}${c[k].toLocaleString()}</span> ${bStr}</p>`;
+            }
+            return h; 
+        }
+
+        function RenderItm(it) { 
+            let h = ''; 
+            if(it.lost && it.lost.length > 0) h += `<p class="flex items-center text-rose-400 mt-1"><i class="fa-solid fa-trash-can w-5 text-center mr-2"></i> <span>Mất: <span class="font-bold">${it.lost.map(x => Dich(x)).join(', ')}</span></span></p>`;
+            if(it.gained && it.gained.length > 0) h += `<p class="flex items-center text-emerald-400 mt-1"><i class="fa-solid fa-gift w-5 text-center mr-2"></i> <span>Nhận: <span class="font-bold">${it.gained.map(x => Dich(x)).join(', ')}</span></span></p>`;
+            return h; 
+        }
+
+        function ToggleAuthMode(m) { 
+            document.querySelectorAll('#authScreen > div').forEach(d => { if(d.id.includes('Form')) d.classList.add('hidden'); }); 
+            document.getElementById(m + 'Form').classList.remove('hidden'); 
+            let titles = { 'login': 'Security Portal', 'register': 'Đăng Ký Tài Khoản Mới', 'forgot': 'Khôi Phục Mật Khẩu' };
+            document.getElementById('formSubtitle').innerText = titles[m];
+        }
+
+        // 🌟 KIỂM TRA PHIÊN ĐĂNG NHẬP NGAY KHI VỪA TẢI TRANG
+        window.onload = AuthManager.CheckSession;
+    </script>
+</body>
+</html>
