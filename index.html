@@ -308,8 +308,50 @@
                 var u = document.getElementById("loginUser").value.trim(), p = document.getElementById("loginPass").value;
                 if(!u || p.length < 6) return AppUI.Warn('Lưu ý', 'Vui lòng nhập đủ tài khoản và mật khẩu!');
                 AppUI.Loading('Đang kết nối...');
+                
                 PlayFabClientSDK.LoginWithPlayFab({ TitleId: CONFIG.TitleId, Username: u, Password: p }, (res, err) => {
-                    if(err) return AppUI.Error('Lỗi', 'Sai tên tài khoản hoặc mật khẩu!');
+                    if(err) {
+                        Swal.close();
+                        
+                        // 🌟 Xử lý hiển thị chi tiết lỗi Khóa Tài Khoản
+                        if (err.error === "AccountBanned") {
+                            let reason = "Vi phạm quy định máy chủ";
+                            let expires = "Liên hệ Admin để biết thêm chi tiết!";
+
+                            // Bóc tách chi tiết từ ErrorDetails
+                            if (err.errorDetails) {
+                                for (let key in err.errorDetails) {
+                                    let val = err.errorDetails[key];
+                                    if (Array.isArray(val)) val = val[0];
+
+                                    if (key.toLowerCase().includes("reason")) reason = val;
+                                    if (key.toLowerCase().includes("expires")) {
+                                        expires = new Date(val).toLocaleString('vi-VN');
+                                    }
+                                }
+                            }
+
+                            // Tạo khung giao diện báo lỗi ngầu đét
+                            let finalHtml = `
+                                <div style="text-align: left; padding: 15px; background: rgba(244, 63, 94, 0.1); border-radius: 8px; border: 1px solid rgba(244, 63, 94, 0.3); margin-top: 10px;">
+                                    <p style="margin: 0 0 8px 0; color: #fca5a5; font-size: 13px;"><b>LÝ DO:</b> <br><span style="color: white; font-size: 14px;">${reason}</span></p>
+                                    <p style="margin: 0; color: #fca5a5; font-size: 13px;"><b>HẠN MỞ KHÓA:</b> <br><span style="color: white; font-size: 14px;">${expires}</span></p>
+                                </div>
+                            `;
+
+                            return Swal.fire({
+                                icon: 'error',
+                                title: 'TÀI KHOẢN BỊ KHÓA',
+                                html: finalHtml,
+                                background: '#0f172a',
+                                color: '#f8fafc',
+                                confirmButtonColor: '#06b6d4'
+                            });
+                        }
+                        
+                        return AppUI.Error('Lỗi', 'Sai tên tài khoản hoặc mật khẩu!');
+                    }
+                    
                     Swal.close();
 
                     localStorage.setItem("rf_sessionTicket", res.data.SessionTicket);
