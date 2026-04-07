@@ -397,6 +397,7 @@
                 });
             },
             // 🌟 ĐÃ THÊM: HÀM GỬI TICKER CSKH
+            // 🌟 ĐÃ NÂNG CẤP: GỬI THẲNG VÀO THÙNG THƯ CLOUD
             SubmitTicket: () => {
                 let title = document.getElementById("supportTitle").value.trim();
                 let desc = document.getElementById("supportDesc").value.trim();
@@ -405,16 +406,16 @@
                 if (desc.length < 15) return AppUI.Warn('Lỗi', 'Mô tả quá ngắn, vui lòng trình bày chi tiết hơn!');
 
                 AppUI.Loading('Đang gửi báo cáo...');
-                PlayFabClientSDK.WritePlayerEvent({
-                    EventName: "player_submit_ticket",
-                    Body: {
-                        Title: title,
-                        Description: desc,
-                        PlayerName: document.getElementById('ui-displayName').innerText
+                PlayFabClientSDK.ExecuteCloudScript({
+                    FunctionName: "GhiNhanBaoLoi",
+                    FunctionParameter: {
+                        title: title,
+                        desc: desc,
+                        playerName: document.getElementById('ui-displayName').innerText
                     }
                 }, (res, err) => {
                     if(err) return AppUI.Error('Lỗi gửi báo cáo', err);
-                    AppUI.Success('Gửi Thành Công', 'Cảm ơn bạn! Đơn báo cáo đã được gửi thẳng tới màn hình Data của Ban Quản Trị.');
+                    AppUI.Success('Gửi Thành Công', 'Cảm ơn bạn! Đơn báo cáo đã được chuyển thẳng vào hộp thư của Ban Quản Trị.');
                     document.getElementById("supportTitle").value = "";
                     document.getElementById("supportDesc").value = "";
                 });
