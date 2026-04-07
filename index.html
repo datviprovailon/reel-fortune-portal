@@ -130,12 +130,16 @@
                 </div>
                 <h1 class="text-lg font-black text-white tracking-wide uppercase">Portal</h1>
             </div>
+            
             <nav class="flex flex-row md:flex-col gap-2 flex-1 overflow-x-auto md:overflow-hidden pb-2 md:pb-0 custom-scrollbar">
                 <button onclick="DashboardManager.SwitchTab('profile')" id="nav-profile" class="nav-item nav-active flex-shrink-0 md:w-full text-left px-4 py-3.5 rounded-xl font-bold text-sm flex items-center transition-all">
                     <i class="fa-solid fa-user-shield mr-3 w-5 text-center"></i> <span>Hồ Sơ Của Tôi</span>
                 </button>
                 <button onclick="DashboardManager.SwitchTab('history')" id="nav-history" class="nav-item flex-shrink-0 md:w-full text-left px-4 py-3.5 rounded-xl font-bold text-sm text-slate-400 hover:text-white hover:bg-slate-800/50 flex items-center transition-all">
                     <i class="fa-solid fa-file-invoice-dollar mr-3 w-5 text-center"></i> <span>Sổ Sao Kê VIP</span>
+                </button>
+                <button onclick="DashboardManager.SwitchTab('support')" id="nav-support" class="nav-item flex-shrink-0 md:w-full text-left px-4 py-3.5 rounded-xl font-bold text-sm text-slate-400 hover:text-white hover:bg-slate-800/50 flex items-center transition-all">
+                    <i class="fa-solid fa-headset mr-3 w-5 text-center"></i> <span>Trung Tâm Hỗ Trợ</span>
                 </button>
             </nav>
             <button onclick="AuthManager.Logout()" class="hidden md:flex mt-auto px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all font-bold text-xs uppercase border border-rose-500/20 items-center justify-center">
@@ -227,6 +231,33 @@
                 <div id="log-container" class="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar pb-10">
                 </div>
             </div>
+
+            <div id="tab-support" class="tab-content hidden animate-fade h-full flex flex-col pb-10">
+                <div class="pr-12 md:pr-0 mb-6 md:mb-8">
+                    <h2 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tight">Trung Tâm Hỗ Trợ</h2>
+                    <p class="text-sm text-slate-400 mt-1">Gửi trực tiếp báo cáo lỗi, khiếu nại nạp thẻ hoặc góp ý cho Ban Quản Trị.</p>
+                </div>
+
+                <div class="bg-gaming-800/50 border border-slate-700/50 p-6 md:p-8 rounded-2xl relative overflow-hidden space-y-6">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
+                    
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-300 uppercase tracking-widest"><i class="fa-solid fa-heading text-yellow-500 mr-2"></i>Tiêu đề báo cáo</label>
+                        <input type="text" id="supportTitle" class="input-custom w-full rounded-xl px-4 py-3.5 text-sm" placeholder="VD: Lỗi mất kết nối khi đang quay Gacha...">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-300 uppercase tracking-widest"><i class="fa-solid fa-align-left text-yellow-500 mr-2"></i>Mô tả chi tiết</label>
+                        <textarea id="supportDesc" class="input-custom w-full rounded-xl px-4 py-3.5 text-sm h-32 resize-none custom-scrollbar" placeholder="Vui lòng mô tả rõ sự việc: Xảy ra lúc mấy giờ? Bạn đang thực hiện thao tác gì? Dòng thông báo lỗi màu đỏ (nếu có)?..."></textarea>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-700/50 text-right">
+                        <button onclick="DashboardManager.SubmitTicket()" class="bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold px-8 py-3.5 rounded-xl uppercase text-xs tracking-widest transition-all shadow-lg active:scale-95">
+                            <i class="fa-solid fa-paper-plane mr-2"></i> Gửi Yêu Cầu
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -252,23 +283,17 @@
         };
 
         var AuthManager = {
-            // 🌟 ĐÃ THÊM: HÀM KIỂM TRA PHIÊN ĐĂNG NHẬP
             CheckSession: () => {
                 let session = localStorage.getItem("rf_sessionTicket");
                 let pId = localStorage.getItem("rf_playfabId");
                 let usr = localStorage.getItem("rf_username");
 
                 if (session && pId && usr) {
-                    // Nhồi lại thẻ thông hành vào SDK
                     PlayFab._internalSettings.sessionTicket = session;
-                    
-                    // Gọi API lấy hồ sơ để test xem thẻ thông hành còn hạn không
                     PlayFabClientSDK.GetPlayerProfile({ ProfileConstraints: { ShowDisplayName: true } }, (res, err) => {
                         if (err) {
-                            // Hết hạn -> Xóa dữ liệu cũ, hiện lại màn đăng nhập
                             AuthManager.Logout(false);
                         } else {
-                            // Còn hạn -> Đi thẳng vào Dashboard
                             document.getElementById('authScreen').classList.add('hidden');
                             document.getElementById('dashboardScreen').classList.remove('hidden');
                             document.getElementById('dashboardScreen').classList.add('flex');
@@ -285,7 +310,6 @@
                     if(err) return AppUI.Error('Lỗi', 'Sai tên tài khoản hoặc mật khẩu!');
                     Swal.close();
 
-                    // 🌟 ĐÃ THÊM: LƯU TRỮ VÉ THÔNG HÀNH
                     localStorage.setItem("rf_sessionTicket", res.data.SessionTicket);
                     localStorage.setItem("rf_playfabId", res.data.PlayFabId);
                     localStorage.setItem("rf_username", u);
@@ -315,7 +339,6 @@
                     ToggleAuthMode('login');
                 });
             },
-            // 🌟 ĐÃ THÊM: HÀM ĐĂNG XUẤT XÓA BỘ NHỚ
             Logout: (reload = true) => {
                 localStorage.removeItem("rf_sessionTicket");
                 localStorage.removeItem("rf_playfabId");
@@ -371,6 +394,29 @@
                 PlayFabClientSDK.SendAccountRecoveryEmail({ TitleId: CONFIG.TitleId, Email: currentUserEmail }, (res, err) => {
                     if(err) return AppUI.Error('Lỗi', err);
                     AppUI.Success('Thành công', 'Check Email: ' + currentUserEmail);
+                });
+            },
+            // 🌟 ĐÃ THÊM: HÀM GỬI TICKER CSKH
+            SubmitTicket: () => {
+                let title = document.getElementById("supportTitle").value.trim();
+                let desc = document.getElementById("supportDesc").value.trim();
+                
+                if (title.length < 5) return AppUI.Warn('Lỗi', 'Tiêu đề quá ngắn (tối thiểu 5 ký tự)!');
+                if (desc.length < 15) return AppUI.Warn('Lỗi', 'Mô tả quá ngắn, vui lòng trình bày chi tiết hơn!');
+
+                AppUI.Loading('Đang gửi báo cáo...');
+                PlayFabClientSDK.WritePlayerEvent({
+                    EventName: "player_submit_ticket",
+                    Body: {
+                        Title: title,
+                        Description: desc,
+                        PlayerName: document.getElementById('ui-displayName').innerText
+                    }
+                }, (res, err) => {
+                    if(err) return AppUI.Error('Lỗi gửi báo cáo', err);
+                    AppUI.Success('Gửi Thành Công', 'Cảm ơn bạn! Đơn báo cáo đã được gửi thẳng tới màn hình Data của Ban Quản Trị.');
+                    document.getElementById("supportTitle").value = "";
+                    document.getElementById("supportDesc").value = "";
                 });
             },
             TaiSaoKeTuPlayFab: () => {
@@ -489,7 +535,6 @@
             document.getElementById('formSubtitle').innerText = titles[m];
         }
 
-        // 🌟 KIỂM TRA PHIÊN ĐĂNG NHẬP NGAY KHI VỪA TẢI TRANG
         window.onload = AuthManager.CheckSession;
     </script>
 </body>
