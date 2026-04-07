@@ -290,7 +290,9 @@
 
                 if (session && pId && usr) {
                     PlayFab._internalSettings.sessionTicket = session;
-                    PlayFabClientSDK.GetPlayerProfile({ ProfileConstraints: { ShowDisplayName: true } }, (res, err) => {
+                    
+                    // 🌟 ĐÃ VÁ LỖI: Chuyển sang GetAccountInfo để tránh bị văng
+                    PlayFabClientSDK.GetAccountInfo({}, (res, err) => {
                         if (err) {
                             AuthManager.Logout(false);
                         } else {
@@ -352,13 +354,28 @@
             Init: (id, username) => {
                 document.getElementById('ui-playfabId').innerText = id;
                 document.getElementById('ui-username').innerText = username;
-                PlayFabClientSDK.GetPlayerProfile({ ProfileConstraints: { ShowDisplayName: true, ShowContactEmailAddresses: true } }, (res) => {
-                    if(res && res.data.PlayerProfile) {
-                        document.getElementById('ui-displayName').innerText = res.data.PlayerProfile.DisplayName || "Tân Thủ";
-                        if(res.data.PlayerProfile.ContactEmailAddresses && res.data.PlayerProfile.ContactEmailAddresses.length > 0)
-                            currentUserEmail = res.data.PlayerProfile.ContactEmailAddresses[0].EmailAddress;
+                
+                // 🌟 ĐÃ VÁ LỖI: Dùng GetAccountInfo để lấy an toàn cả DisplayName và Email
+                PlayFabClientSDK.GetAccountInfo({}, (res, err) => {
+                    if(res && res.data && res.data.AccountInfo) {
+                        let accInfo = res.data.AccountInfo;
+                        
+                        // Cập nhật Tên hiển thị
+                        if (accInfo.TitleInfo && accInfo.TitleInfo.DisplayName) {
+                            document.getElementById('ui-displayName').innerText = accInfo.TitleInfo.DisplayName;
+                        } else {
+                            document.getElementById('ui-displayName').innerText = "Tân Thủ";
+                        }
+                        
+                        // Cập nhật Email bí mật
+                        if (accInfo.PrivateInfo && accInfo.PrivateInfo.Email) {
+                            currentUserEmail = accInfo.PrivateInfo.Email;
+                        }
+                    } else if (err) {
+                        console.error("Lỗi lấy thông tin cá nhân:", err);
                     }
                 });
+
                 PlayFabClientSDK.GetUserInventory({}, (res) => {
                     if(res && res.data.VirtualCurrency) {
                         document.getElementById('ui-dm').innerText = (res.data.VirtualCurrency["DM"] || 0).toLocaleString();
@@ -396,8 +413,6 @@
                     AppUI.Success('Thành công', 'Check Email: ' + currentUserEmail);
                 });
             },
-            // 🌟 ĐÃ THÊM: HÀM GỬI TICKER CSKH
-            // 🌟 ĐÃ NÂNG CẤP: GỬI THẲNG VÀO THÙNG THƯ CLOUD
             SubmitTicket: () => {
                 let title = document.getElementById("supportTitle").value.trim();
                 let desc = document.getElementById("supportDesc").value.trim();
