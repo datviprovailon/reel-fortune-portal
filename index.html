@@ -60,7 +60,7 @@
     <div id="authScreen" class="w-full max-w-[380px] p-8 md:p-10 glass-card rounded-3xl animate-fade z-10">
         <div class="text-center mb-8">
             <div class="w-16 h-16 bg-gaming-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-gaming-accent/20 text-gaming-accent shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-                <i class="fa-solid fa-gamepad text-3xl"></i>
+                <i class="fa-solid fa-fish-fins text-3xl"></i>
             </div>
             <h2 class="text-2xl font-black text-white tracking-wide uppercase">Reel Fortune</h2>
             <p id="formSubtitle" class="text-xs text-slate-400 font-medium uppercase tracking-widest mt-2">Security Portal</p>
@@ -97,7 +97,10 @@
                 <input type="text" id="regUser" maxlength="20" oninput="AppUI.UpdateCounter(this, 'regUserCount', 20)" class="input-custom w-full rounded-xl px-4 py-3 text-sm" placeholder="VD: player123">
             </div>
             <div class="space-y-1.5">
-                <label class="text-[11px] text-slate-400 font-bold uppercase tracking-wider ml-1">Email khôi phục</label>
+                <div class="flex justify-between items-center ml-1 pr-1">
+                    <label class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Email khôi phục</label>
+                    <span class="text-[9px] text-yellow-500 font-medium italic">*Dùng email thật để lấy lại pass</span>
+                </div>
                 <input type="email" id="regEmail" class="input-custom w-full rounded-xl px-4 py-3 text-sm" placeholder="email@domain.com">
             </div>
             <div class="space-y-1.5">
@@ -126,7 +129,7 @@
         <div class="w-full md:w-64 bg-gaming-900/80 p-6 flex flex-col border-b md:border-b-0 md:border-r border-slate-700/50 flex-shrink-0">
             <div class="flex items-center gap-3 mb-6 md:mb-10 px-2">
                 <div class="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 border border-cyan-500/20">
-                    <i class="fa-solid fa-gamepad text-xl"></i>
+                    <i class="fa-solid fa-fish-fins text-xl"></i>
                 </div>
                 <h1 class="text-lg font-black text-white tracking-wide uppercase">Portal</h1>
             </div>
@@ -278,8 +281,27 @@
             },
             Loading: (m) => Swal.fire({ title: m, allowOutsideClick: false, background: '#0f172a', color: '#f8fafc', didOpen: () => Swal.showLoading() }),
             Success: (t, txt) => Swal.fire({ icon: 'success', title: t, text: txt, background: '#0f172a', color: '#f8fafc', confirmButtonColor: '#06b6d4' }),
-            Error: (t, err) => { let msg = (typeof err === 'string') ? err : (err.errorMessage || "Lỗi máy chủ."); Swal.fire({ icon: 'error', title: t, text: msg, background: '#0f172a', color: '#f8fafc' }); },
-            Warn: (t, txt) => Swal.fire({ icon: 'warning', title: t, text: txt, background: '#0f172a', color: '#f8fafc' })
+            Error: (t, err) => { 
+                let msg = (typeof err === 'string') ? err : (err.errorMessage || "Lỗi máy chủ."); 
+                Swal.fire({ icon: 'error', title: t, text: msg, background: '#0f172a', color: '#f8fafc', confirmButtonColor: '#06b6d4' }); 
+            },
+            Warn: (t, txt) => Swal.fire({ icon: 'warning', title: t, text: txt, background: '#0f172a', color: '#f8fafc', confirmButtonColor: '#06b6d4' }),
+            
+            // 🌟 ĐÃ THÊM: Bộ từ điển dịch mã lỗi PlayFab sang tiếng Việt thân thiện
+            GetFriendlyError: (err) => {
+                if (!err) return "Lỗi máy chủ không xác định.";
+                switch (err.error) {
+                    case "InvalidUsernameOrPassword": return "Sai tên tài khoản hoặc mật khẩu!";
+                    case "AccountNotFound": return "Không tìm thấy tài khoản (hoặc Email) này!";
+                    case "UserNotFound": return "Không tìm thấy người chơi này!";
+                    case "EmailAddressNotAvailable": return "Email này đã được sử dụng cho một tài khoản khác!";
+                    case "UsernameNotAvailable": return "Tên tài khoản này đã bị người khác giành mất!";
+                    case "InvalidEmailAddress": return "Định dạng email không hợp lệ (VD chuẩn: abc@gmail.com)!";
+                    case "InvalidPassword": return "Mật khẩu không hợp lệ (cần ít nhất 6 ký tự)!";
+                    case "ProfaneDisplayName": return "Tên tài khoản có chứa từ ngữ nhạy cảm/không phù hợp!";
+                    default: return err.errorMessage || "Lỗi kết nối máy chủ!";
+                }
+            }
         };
 
         var AuthManager = {
@@ -291,7 +313,6 @@
                 if (session && pId && usr) {
                     PlayFab._internalSettings.sessionTicket = session;
                     
-                    // 🌟 ĐÃ VÁ LỖI: Chuyển sang GetAccountInfo để tránh bị văng
                     PlayFabClientSDK.GetAccountInfo({}, (res, err) => {
                         if (err) {
                             AuthManager.Logout(false);
@@ -306,24 +327,22 @@
             },
             Login: () => {
                 var u = document.getElementById("loginUser").value.trim(), p = document.getElementById("loginPass").value;
-                if(!u || p.length < 6) return AppUI.Warn('Lưu ý', 'Vui lòng nhập đủ tài khoản và mật khẩu!');
+                if(!u || p.length < 6) return AppUI.Warn('Lưu ý', 'Vui lòng nhập đủ tài khoản và mật khẩu (tối thiểu 6 ký tự)!');
                 AppUI.Loading('Đang kết nối...');
                 
                 PlayFabClientSDK.LoginWithPlayFab({ TitleId: CONFIG.TitleId, Username: u, Password: p }, (res, err) => {
                     if(err) {
                         Swal.close();
                         
-                        // 🌟 Xử lý hiển thị chi tiết lỗi Khóa Tài Khoản
+                        // Xử lý báo lỗi Khóa tài khoản bằng Popup HTML ngầu đét
                         if (err.error === "AccountBanned") {
                             let reason = "Vi phạm quy định máy chủ";
-                            let expires = "Liên hệ Admin để biết thêm chi tiết!";
+                            let expires = "Vĩnh viễn (Hoặc chờ Ân Xá)";
 
-                            // Bóc tách chi tiết từ ErrorDetails
                             if (err.errorDetails) {
                                 for (let key in err.errorDetails) {
                                     let val = err.errorDetails[key];
                                     if (Array.isArray(val)) val = val[0];
-
                                     if (key.toLowerCase().includes("reason")) reason = val;
                                     if (key.toLowerCase().includes("expires")) {
                                         expires = new Date(val).toLocaleString('vi-VN');
@@ -331,11 +350,10 @@
                                 }
                             }
 
-                            // Tạo khung giao diện báo lỗi ngầu đét
                             let finalHtml = `
                                 <div style="text-align: left; padding: 15px; background: rgba(244, 63, 94, 0.1); border-radius: 8px; border: 1px solid rgba(244, 63, 94, 0.3); margin-top: 10px;">
-                                    <p style="margin: 0 0 8px 0; color: #fca5a5; font-size: 13px;"><b>LÝ DO:</b> <br><span style="color: white; font-size: 14px;">${reason}</span></p>
-                                    <p style="margin: 0; color: #fca5a5; font-size: 13px;"><b>HẠN MỞ KHÓA:</b> <br><span style="color: white; font-size: 14px;">${expires}</span></p>
+                                    <p style="margin: 0 0 8px 0; color: #fca5a5; font-size: 13px;"><b>THÔNG BÁO TỪ HỆ THỐNG:</b> <br><span style="color: white; font-size: 14px;">Tài khoản <b style="color: #06b6d4;">${u}</b> đang thi hành án phạt và bị cấm truy cập.</span></p>
+                                    <p style="margin: 0; color: #fca5a5; font-size: 13px;"><b>HƯỚNG GIẢI QUYẾT:</b> <br><span style="color: white; font-size: 14px;">Vì lý do bảo mật, hệ thống không hiển thị án phạt tại đây. Vui lòng liên hệ trực tiếp Admin (Fanpage/Discord) để kiểm tra lý do và thời gian ân xá.</span></p>
                                 </div>
                             `;
 
@@ -345,11 +363,13 @@
                                 html: finalHtml,
                                 background: '#0f172a',
                                 color: '#f8fafc',
+                                confirmButtonText: 'Đã hiểu',
                                 confirmButtonColor: '#06b6d4'
                             });
                         }
                         
-                        return AppUI.Error('Lỗi', 'Sai tên tài khoản hoặc mật khẩu!');
+                        // 🌟 ĐÃ SỬA: Gọi từ điển báo lỗi tiếng Việt nếu không phải bị Ban
+                        return AppUI.Error('Đăng nhập thất bại', AppUI.GetFriendlyError(err));
                     }
                     
                     Swal.close();
@@ -365,21 +385,34 @@
             },
             Register: () => {
                 var u = document.getElementById("regUser").value.trim(), e = document.getElementById("regEmail").value.trim(), p = document.getElementById("regPass").value;
-                if(!/^[a-zA-Z0-9]+$/.test(u)) return AppUI.Warn('Lỗi', 'Tên chỉ chứa chữ và số!');
-                if(u.length < 3 || p.length < 6) return AppUI.Warn('Lỗi', 'Thông tin quá ngắn!');
-                AppUI.Loading('Đang tạo...');
+                if(!/^[a-zA-Z0-9]+$/.test(u)) return AppUI.Warn('Lỗi', 'Tên tài khoản chỉ được chứa chữ cái và số, không dùng ký tự đặc biệt!');
+                if(u.length < 3 || p.length < 6) return AppUI.Warn('Lỗi', 'Tên tài khoản phải dài ít nhất 3 ký tự, mật khẩu ít nhất 6 ký tự!');
+                
+                AppUI.Loading('Đang tạo tài khoản...');
                 PlayFabClientSDK.RegisterPlayFabUser({ TitleId: CONFIG.TitleId, Username: u, Email: e, Password: p, RequireBothUsernameAndEmail: true }, (res, err) => {
-                    if(err) return AppUI.Error('Lỗi', err);
-                    AppUI.Success('Xong!', 'Đăng ký thành công!');
+                    if(err) {
+                        Swal.close();
+                        // 🌟 ĐÃ SỬA: Gọi từ điển báo lỗi tiếng Việt
+                        return AppUI.Error('Đăng ký thất bại', AppUI.GetFriendlyError(err));
+                    }
+                    
+                    AppUI.Success('Thành công!', 'Bạn đã đăng ký tài khoản thành công! Bây giờ có thể đăng nhập.');
                     ToggleAuthMode('login');
                 });
             },
             ForgotPassword: () => {
                 var e = document.getElementById("forgotEmail").value.trim();
-                AppUI.Loading('Đang gửi...');
+                if(!e) return AppUI.Warn('Lưu ý', 'Vui lòng nhập Email của bạn!');
+                
+                AppUI.Loading('Đang kiểm tra hệ thống...');
                 PlayFabClientSDK.SendAccountRecoveryEmail({ TitleId: CONFIG.TitleId, Email: e }, (res, err) => {
-                    if(err) return AppUI.Error('Lỗi', err);
-                    AppUI.Success('Đã gửi', 'Vui lòng check hộp thư Email.');
+                    if(err) {
+                        Swal.close();
+                        // 🌟 ĐÃ SỬA: Gọi từ điển báo lỗi tiếng Việt
+                        return AppUI.Error('Gửi yêu cầu thất bại', AppUI.GetFriendlyError(err));
+                    }
+                    
+                    AppUI.Success('Đã gửi thư!', 'Hệ thống đã gửi hướng dẫn tạo mật khẩu mới vào hộp thư Email của bạn.');
                     ToggleAuthMode('login');
                 });
             },
@@ -397,19 +430,16 @@
                 document.getElementById('ui-playfabId').innerText = id;
                 document.getElementById('ui-username').innerText = username;
                 
-                // 🌟 ĐÃ VÁ LỖI: Dùng GetAccountInfo để lấy an toàn cả DisplayName và Email
                 PlayFabClientSDK.GetAccountInfo({}, (res, err) => {
                     if(res && res.data && res.data.AccountInfo) {
                         let accInfo = res.data.AccountInfo;
                         
-                        // Cập nhật Tên hiển thị
                         if (accInfo.TitleInfo && accInfo.TitleInfo.DisplayName) {
                             document.getElementById('ui-displayName').innerText = accInfo.TitleInfo.DisplayName;
                         } else {
                             document.getElementById('ui-displayName').innerText = "Tân Thủ";
                         }
                         
-                        // Cập nhật Email bí mật
                         if (accInfo.PrivateInfo && accInfo.PrivateInfo.Email) {
                             currentUserEmail = accInfo.PrivateInfo.Email;
                         }
@@ -440,7 +470,10 @@
                 if(newName.length < 3) return AppUI.Warn('Lỗi', 'Tên quá ngắn!');
                 AppUI.Loading('Đang đổi tên...');
                 PlayFabClientSDK.UpdateUserTitleDisplayName({ DisplayName: newName }, (res, err) => {
-                    if(err) return AppUI.Error('Lỗi', err);
+                    if(err) {
+                        Swal.close();
+                        return AppUI.Error('Lỗi đổi tên', AppUI.GetFriendlyError(err));
+                    }
                     AppUI.Success('Thành công', 'Đã thay đổi tên nhân vật!');
                     document.getElementById('ui-displayName').innerText = newName;
                     document.getElementById("newDisplayName").value = "";
@@ -451,7 +484,10 @@
                 if(!currentUserEmail) return AppUI.Error('Lỗi', 'Chưa có Email liên kết.');
                 AppUI.Loading('Đang gửi...');
                 PlayFabClientSDK.SendAccountRecoveryEmail({ TitleId: CONFIG.TitleId, Email: currentUserEmail }, (res, err) => {
-                    if(err) return AppUI.Error('Lỗi', err);
+                    if(err) {
+                        Swal.close();
+                        return AppUI.Error('Lỗi', AppUI.GetFriendlyError(err));
+                    }
                     AppUI.Success('Thành công', 'Check Email: ' + currentUserEmail);
                 });
             },
@@ -471,7 +507,10 @@
                         playerName: document.getElementById('ui-displayName').innerText
                     }
                 }, (res, err) => {
-                    if(err) return AppUI.Error('Lỗi gửi báo cáo', err);
+                    if(err) {
+                        Swal.close();
+                        return AppUI.Error('Lỗi gửi báo cáo', err.errorMessage);
+                    }
                     AppUI.Success('Gửi Thành Công', 'Cảm ơn bạn! Đơn báo cáo đã được chuyển thẳng vào hộp thư của Ban Quản Trị.');
                     document.getElementById("supportTitle").value = "";
                     document.getElementById("supportDesc").value = "";
